@@ -17,9 +17,12 @@ package org.springframework.data.jdbc.testing;
 
 import javax.sql.DataSource;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
+import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 import org.testcontainers.containers.OracleContainer;
 
 /**
@@ -36,6 +39,8 @@ import org.testcontainers.containers.OracleContainer;
 @Profile("oracle")
 public class OracleDataSourceConfiguration extends DataSourceConfiguration {
 
+	private static final Logger LOG = LoggerFactory.getLogger(OracleDataSourceConfiguration.class);
+
 	private static OracleContainer ORACLE_CONTAINER;
 
 	/*
@@ -47,14 +52,22 @@ public class OracleDataSourceConfiguration extends DataSourceConfiguration {
 
 		if (ORACLE_CONTAINER == null) {
 
-			OracleContainer container = new OracleContainer("name_of_your_oracle_xe_image");
+			OracleContainer container = new OracleContainer("springci/spring-data-oracle-xe-prebuild:18.4.0").withReuse(true);
 			container.start();
 
 			ORACLE_CONTAINER = container;
 		}
 
-		return new DriverManagerDataSource(ORACLE_CONTAINER.getJdbcUrl(), ORACLE_CONTAINER.getUsername(),
+		String jdbcUrl = ORACLE_CONTAINER.getJdbcUrl().replace(":xe", "/XEPDB1");
+
+		DataSource dataSource = new DriverManagerDataSource(jdbcUrl, ORACLE_CONTAINER.getUsername(),
 				ORACLE_CONTAINER.getPassword());
+
+		return dataSource;
 	}
 
+	@Override
+	protected void customizePopulator(ResourceDatabasePopulator populator) {
+		populator.setIgnoreFailedDrops(true);
+	}
 }
