@@ -28,6 +28,8 @@ import org.testcontainers.containers.OracleContainer;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.time.temporal.ChronoUnit;
+import java.util.concurrent.TimeUnit;
 
 /**
  * {@link DataSource} setup for Oracle Database XE. Starts a docker container with a Oracle database.
@@ -70,7 +72,10 @@ public class OracleDataSourceConfiguration extends DataSourceConfiguration {
 		// Oracle container says its ready but it's like with a cat that denies service and still wants food although it had
 		// its food. Therefore, we make sure that we can properly establish a connection instead of trusting the cat
 		// ...err... Oracle.
-		Awaitility.await().ignoreException(SQLException.class).until(() -> {
+		Awaitility.await()
+				.atMost(2L, TimeUnit.MINUTES )
+				.pollInterval(10, TimeUnit.SECONDS)
+				.ignoreException(SQLException.class).until(() -> {
 
 			try (Connection connection = dataSource.getConnection()) {
 				return true;
