@@ -17,6 +17,7 @@ package org.springframework.data.jdbc.testing;
 
 import javax.sql.DataSource;
 
+import org.awaitility.Awaitility;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Configuration;
@@ -24,6 +25,9 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 import org.testcontainers.containers.OracleContainer;
+
+import java.sql.Connection;
+import java.sql.SQLException;
 
 /**
  * {@link DataSource} setup for Oracle Database XE. Starts a docker container with a Oracle database.
@@ -62,6 +66,17 @@ public class OracleDataSourceConfiguration extends DataSourceConfiguration {
 
 		DataSource dataSource = new DriverManagerDataSource(jdbcUrl, ORACLE_CONTAINER.getUsername(),
 				ORACLE_CONTAINER.getPassword());
+
+		// Oracle container says its ready but it's like with a cat that denies service and still wants food although it had
+		// its food. Therefore, we make sure that we can properly establish a connection instead of trusting the cat
+		// ...err... Oracle.
+		Awaitility.await().ignoreException(SQLException.class).until(() -> {
+
+			try (Connection connection = dataSource.getConnection()) {
+				return true;
+			}
+		});
+
 
 		return dataSource;
 	}
